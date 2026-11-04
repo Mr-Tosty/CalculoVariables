@@ -1,6 +1,6 @@
-"""Modulo de Interfaz de Usuario.
+"""Modulo de Interfaz de Usuario con Pestañas y Apuntes Integrados.
 
-Diseno ultra intuitivo, letras grandes, boton de indicaciones y graficos 2D/3D seguros.
+Diseno ultra visible, resultados llamativos y formulario integrado para evitar buscar notas.
 """
 
 import customtkinter as ctk
@@ -14,116 +14,62 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 
-class InstructionsWindow(ctk.CTkToplevel):
-    """Ventana independiente para mostrar las instrucciones claras y formularios."""
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.title("Ayuda e Indicaciones del Asistente")
-        self.geometry("650 x 550")
-        self.minsize(500, 400)
-
-        title_lbl = ctk.CTkLabel(
-            self,
-            text="Guia de Uso y Formulario Rapido",
-            font=ctk.CTkFont(size=18, weight="bold"),
-        )
-        title_lbl.pack(pady=10)
-
-        txt_box = ctk.CTkTextbox(self, font=ctk.CTkFont(size=13))
-        txt_box.pack(fill="both", expand=True, padx=15, pady=10)
-
-        guide_text = (
-            "BIENVENIDO AL ASISTENTE DE CALCULO MULTIVARIABLE\n\n"
-            "1. COMO INGRESAR FUNCIONES:\n"
-            "   - Use la sintaxis estandar de Python/SymPy.\n"
-            "   - Multiplicacion explicita recomendada: ej. 3*x^2 o 2*x*y.\n"
-            "   - Potencias: Use '^' o '**' (ej. x^3).\n"
-            "   - Funciones trigonometricas: sin(x), cos(x), tan(x).\n"
-            "   - Logaritmos y exponenciales: ln(x) o log(x), exp(x) o e**x.\n\n"
-            "2. OPERACIONES DISPONIBLES:\n"
-            "   - Derivar: Seleccione la variable (x, y, z) y el orden numerico (1, 2...).\n"
-            "   - Limite: Ingrese la variable y el valor al que tiende (ej. 0 o oo).\n"
-            "   - Integrar (Simple): Indefinida o definida ingresando limite inferior y superior.\n"
-            "   - Integral Doble / Triple: Ingrese limites para cada variable separados por campos.\n\n"
-            "3. OBSERVACIONES IMPORTANTES:\n"
-            "   - Si la funcion incluye la variable 'z', la grafica 2D se omite automaticamente "
-            "para evitar errores visuales, mostrando el resultado analitico con total precision.\n"
-            "   - Si ocurre algun error de sintaxis o indeterminacion, la aplicacion lo alertara "
-            "en color rojo/naranja sin bloquear el programa (Failsafe activo)."
-        )
-        txt_box.insert("1.0", guide_text)
-        txt_box.configure(state="disabled")
-
-        btn_close = ctk.CTkButton(
-            self, text="Entendido, Cerrar", command=self.destroy
-        )
-        btn_close.pack(pady=10)
-
-
 class MainWindow(ctk.CTk):
 
     def __init__(self):
         super().__init__()
         self.engine = MathEngine()
 
-        self.title("Asistente de Calculo Multivariable - Educativo")
-        self.geometry("1200 x 800")
-        self.minsize(950, 700)
+        self.title("Asistente de Calculo Multivariable - Educativo Pro")
+        self.geometry("1250 x 820")
+        self.minsize(1000, 700)
 
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=3)
+        self.grid_columnconfigure(1, weight=2)
+        self.grid_rowconfigure(0, weight=1)
 
-        self._build_header()
-        self._build_form_panel()
+        self._build_main_layout()
+
+    def _build_main_layout(self):
+        # Contenedor de Pestañas Principal (Integra Calculadora y Apuntes)
+        self.tab_view = ctk.CTkTabview(self)
+        self.tab_view.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+
+        self.tab_calc = self.tab_view.add("🧮 Calculadora")
+        self.tab_notes = self.tab_view.add("📚 Apuntes y Fórmulas")
+
+        self._build_calculator_tab(self.tab_calc)
+        self._build_notes_tab(self.tab_notes)
+
+        # Panel Derecho: Resultados Gigantes y Grafica (Siempre visible)
         self._build_results_panel()
 
-    def _build_header(self):
-        header = ctk.CTkFrame(self, corner_radius=0, fg_color=("gray85", "gray20"))
-        header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
+    def _build_calculator_tab(self, parent):
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=1)
 
-        title = ctk.CTkLabel(
-            header,
-            text="Asistente de Calculo Multivariable",
-            font=ctk.CTkFont(size=22, weight="bold"),
-        )
-        title.pack(side="left", padx=20, pady=10)
+        scroll = ctk.CTkScrollableFrame(parent, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=5, pady=5)
 
-        # Boton de indicaciones requerido
-        btn_help = ctk.CTkButton(
-            header,
-            text="📖 Guia e Indicaciones",
-            fg_color="#1f538d",
-            hover_color="#14375e",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            command=self._open_instructions,
-        )
-        btn_help.pack(side="right", padx=20, pady=10)
-
-    def _open_instructions(self):
-        InstructionsWindow(self)
-
-    def _build_form_panel(self):
-        form = ctk.CTkScrollableFrame(self, label_text="Panel de Control y Funciones")
-        form.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
-
-        # Entrada de funcion con letra clara y grande
+        # Funcion
         ctk.CTkLabel(
-            form, text="Funcion f(x, y, z):", font=ctk.CTkFont(size=14, weight="bold")
-        ).pack(anchor="w", padx=15, pady=(10, 2))
+            scroll, text="1. Ingresa la Función f(x, y, z):",
+            font=ctk.CTkFont(size=15, weight="bold")
+        ).pack(anchor="w", padx=10, pady=(10, 2))
         self.entry_expr = ctk.CTkEntry(
-            form, placeholder_text="Ej: x^2 + 3*x*y - sin(z)", height=35, font=ctk.CTkFont(size=14)
+            scroll, placeholder_text="Ej: x^2 + 3*x*y - sin(z)",
+            height=40, font=ctk.CTkFont(size=14)
         )
-        self.entry_expr.pack(fill="x", padx=15, pady=2)
+        self.entry_expr.pack(fill="x", padx=10, pady=2)
 
-        # Selector de operacion
+        # Operacion
         ctk.CTkLabel(
-            form, text="Seleccione Operacion:", font=ctk.CTkFont(size=14, weight="bold")
-        ).pack(anchor="w", padx=15, pady=(15, 2))
+            scroll, text="2. Selecciona la Operación:",
+            font=ctk.CTkFont(size=15, weight="bold")
+        ).pack(anchor="w", padx=10, pady=(15, 2))
         self.op_var = ctk.StringVar(value="Derivar Parcialmente")
         self.combo_op = ctk.CTkOptionMenu(
-            form,
+            scroll,
             values=[
                 "Derivar Parcialmente",
                 "Evaluar Limite",
@@ -133,27 +79,67 @@ class MainWindow(ctk.CTk):
             ],
             variable=self.op_var,
             command=self._toggle_operation_fields,
-            height=35,
-            font=ctk.CTkFont(size=13),
+            height=40,
+            font=ctk.CTkFont(size=13, weight="bold"),
         )
-        self.combo_op.pack(fill="x", padx=15, pady=2)
+        self.combo_op.pack(fill="x", padx=10, pady=2)
 
-        # Contenedor dinamico para parametros
-        self.param_frame = ctk.CTkFrame(form, fg_color="transparent")
-        self.param_frame.pack(fill="x", padx=5, pady=10)
-
+        # Marco Dinamico de Parametros
+        self.param_frame = ctk.CTkFrame(scroll, fg_color=("gray90", "gray17"))
+        self.param_frame.pack(fill="x", padx=5, pady=15)
         self._build_derivative_fields()
 
+        # Boton de Calculo Ultra Llamativo
         btn_calc = ctk.CTkButton(
-            form,
-            text="⚡ Calcular con Precision",
+            scroll,
+            text="🚀 CALCULAR AHORA",
             command=self._execute_calculation,
-            height=45,
-            font=ctk.CTkFont(size=15, weight="bold"),
-            fg_color="#2b8a3e",
-            hover_color="#236f33",
+            height=50,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            fg_color="#1f8a4c",
+            hover_color="#145c32",
         )
-        btn_calc.pack(fill="x", padx=15, pady=20)
+        btn_calc.pack(fill="x", padx=10, pady=20)
+
+    def _build_notes_tab(self, parent):
+        """Pestaña con los apuntes y formulario exactos para no buscar fuera."""
+        scroll = ctk.CTkScrollableFrame(parent)
+        scroll.pack(fill="both", expand=True, padx=5, pady=5)
+
+        title = ctk.CTkLabel(
+            scroll, text="Formulario Oficial de Cálculo (Apuntes)",
+            font=ctk.CTkFont(size=18, weight="bold")
+        )
+        title.pack(anchor="w", padx=10, pady=10)
+
+        notes_text = (
+            "📌 REGLAS BÁSICAS DE DERIVADAS E INTEGRALES:\n\n"
+            "1. DERIVADAS:\n"
+            "   • Constante: d/dx (k) = 0\n"
+            "   • Identidad: d/dx (x) = 1\n"
+            "   • Potencia: d/dx (x^n) = n * x^(n-1)\n"
+            "   • Exponencial: d/dx (e^u) = e^u * du/dx\n"
+            "   • Logarítmica: d/dx (ln u) = (1/u) * du/dx\n"
+            "   • Trigonométricas: d/dx(sin u) = cos u * du/dx | d/dx(cos u) = -sin u * du/dx\n\n"
+            "2. INTEGRALES:\n"
+            "   • Constante: ∫ k dx = kx + C\n"
+            "   • Potencia: ∫ x^n dx = x^(n+1) / (n+1) + C  (para n ≠ -1)\n"
+            "   • Logarítmica: ∫ (1/x) dx = ln|x| + C\n"
+            "   • Exponencial: ∫ e^x dx = e^x + C\n"
+            "   • Trigonométricas: ∫ sin u du = -cos u + C | ∫ cos u du = sin u + C\n"
+            "   • Por partes: ∫ u dv = u*v - ∫ v du\n\n"
+            "3. CONSEJOS DE SINTAXIS EN LA APP:\n"
+            "   • Usa siempre asteriscos para multiplicar: 3*x (no 3x).\n"
+            "   • Usa '^' o '**' para potencias: x^2.\n"
+            "   • Si usas la variable 'z', la gráfica 2D se omite automáticamente para darte "
+            "el resultado analítico exacto sin errores."
+        )
+
+        lbl_notes = ctk.CTkLabel(
+            scroll, text=notes_text, justify="left",
+            font=ctk.CTkFont(size=13)
+        )
+        lbl_notes.pack(anchor="w", padx=10, pady=5)
 
     def _toggle_operation_fields(self, choice):
         for widget in self.param_frame.winfo_children():
@@ -171,95 +157,106 @@ class MainWindow(ctk.CTk):
             self._build_triple_integral_fields()
 
     def _build_derivative_fields(self):
-        ctk.CTkLabel(self.param_frame, text="Variable (x, y, z):", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=2)
-        self.entry_var = ctk.CTkEntry(self.param_frame, placeholder_text="x", font=ctk.CTkFont(size=13))
+        ctk.CTkLabel(self.param_frame, text="Variable (x, y, z):", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=2)
+        self.entry_var = ctk.CTkEntry(self.param_frame, placeholder_text="x", height=32)
         self.entry_var.pack(fill="x", padx=10, pady=2)
 
-        ctk.CTkLabel(self.param_frame, text="Orden de derivada:", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=(10, 2))
-        self.entry_p1 = ctk.CTkEntry(self.param_frame, placeholder_text="1", font=ctk.CTkFont(size=13))
-        self.entry_p1.pack(fill="x", padx=10, pady=2)
+        ctk.CTkLabel(self.param_frame, text="Orden de derivada:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=(8, 2))
+        self.entry_p1 = ctk.CTkEntry(self.param_frame, placeholder_text="1", height=32)
+        self.entry_p1.pack(fill="x", padx=10, pady=10)
 
     def _build_limit_fields(self):
-        ctk.CTkLabel(self.param_frame, text="Variable que tiende:", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=2)
-        self.entry_var = ctk.CTkEntry(self.param_frame, placeholder_text="x", font=ctk.CTkFont(size=13))
+        ctk.CTkLabel(self.param_frame, text="Variable que tiende:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=2)
+        self.entry_var = ctk.CTkEntry(self.param_frame, placeholder_text="x", height=32)
         self.entry_var.pack(fill="x", padx=10, pady=2)
 
-        ctk.CTkLabel(self.param_frame, text="Valor al que tiende (Punto):", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=(10, 2))
-        self.entry_p1 = ctk.CTkEntry(self.param_frame, placeholder_text="0 o oo", font=ctk.CTkFont(size=13))
-        self.entry_p1.pack(fill="x", padx=10, pady=2)
+        ctk.CTkLabel(self.param_frame, text="Valor al que tiende (Punto):", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=(8, 2))
+        self.entry_p1 = ctk.CTkEntry(self.param_frame, placeholder_text="0 o oo", height=32)
+        self.entry_p1.pack(fill="x", padx=10, pady=10)
 
     def _build_single_integral_fields(self):
-        ctk.CTkLabel(self.param_frame, text="Variable de integracion:", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=2)
-        self.entry_var = ctk.CTkEntry(self.param_frame, placeholder_text="x", font=ctk.CTkFont(size=13))
+        ctk.CTkLabel(self.param_frame, text="Variable de integración:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=2)
+        self.entry_var = ctk.CTkEntry(self.param_frame, placeholder_text="x", height=32)
         self.entry_var.pack(fill="x", padx=10, pady=2)
 
-        ctk.CTkLabel(self.param_frame, text="Limite Inferior (a) [Opcional]:", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=(10, 2))
-        self.entry_p1 = ctk.CTkEntry(self.param_frame, placeholder_text="Ej: 0", font=ctk.CTkFont(size=13))
+        ctk.CTkLabel(self.param_frame, text="Límite Inf (a) y Sup (b) [Opcionales]:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=(8, 2))
+        self.entry_p1 = ctk.CTkEntry(self.param_frame, placeholder_text="Ej: 0 (Inf)", height=32)
         self.entry_p1.pack(fill="x", padx=10, pady=2)
-
-        ctk.CTkLabel(self.param_frame, text="Limite Superior (b) [Opcional]:", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=(10, 2))
-        self.entry_p2 = ctk.CTkEntry(self.param_frame, placeholder_text="Ej: 1", font=ctk.CTkFont(size=13))
-        self.entry_p2.pack(fill="x", padx=10, pady=2)
+        self.entry_p2 = ctk.CTkEntry(self.param_frame, placeholder_text="Ej: 1 (Sup)", height=32)
+        self.entry_p2.pack(fill="x", padx=10, pady=10)
 
     def _build_double_integral_fields(self):
-        ctk.CTkLabel(self.param_frame, text="Limites X [Inf, Sup]:", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=2)
-        self.entry_xa = ctk.CTkEntry(self.param_frame, placeholder_text="0", font=ctk.CTkFont(size=13))
+        ctk.CTkLabel(self.param_frame, text="Límites X [Inf, Sup]:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=2)
+        self.entry_xa = ctk.CTkEntry(self.param_frame, placeholder_text="0", height=28)
         self.entry_xa.pack(fill="x", padx=10, pady=2)
-        self.entry_xb = ctk.CTkEntry(self.param_frame, placeholder_text="1", font=ctk.CTkFont(size=13))
+        self.entry_xb = ctk.CTkEntry(self.param_frame, placeholder_text="1", height=28)
         self.entry_xb.pack(fill="x", padx=10, pady=2)
 
-        ctk.CTkLabel(self.param_frame, text="Limites Y [Inf, Sup]:", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=(10, 2))
-        self.entry_ya = ctk.CTkEntry(self.param_frame, placeholder_text="0", font=ctk.CTkFont(size=13))
+        ctk.CTkLabel(self.param_frame, text="Límites Y [Inf, Sup]:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=(6, 2))
+        self.entry_ya = ctk.CTkEntry(self.param_frame, placeholder_text="0", height=28)
         self.entry_ya.pack(fill="x", padx=10, pady=2)
-        self.entry_yb = ctk.CTkEntry(self.param_frame, placeholder_text="1-x", font=ctk.CTkFont(size=13))
-        self.entry_yb.pack(fill="x", padx=10, pady=2)
+        self.entry_yb = ctk.CTkEntry(self.param_frame, placeholder_text="1-x", height=28)
+        self.entry_yb.pack(fill="x", padx=10, pady=10)
 
     def _build_triple_integral_fields(self):
-        ctk.CTkLabel(self.param_frame, text="Limites X [Inf, Sup]:", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=2)
-        self.entry_xa = ctk.CTkEntry(self.param_frame, placeholder_text="0", font=ctk.CTkFont(size=13))
-        self.entry_xa.pack(fill="x", padx=10, pady=2)
-        self.entry_xb = ctk.CTkEntry(self.param_frame, placeholder_text="1", font=ctk.CTkFont(size=13))
-        self.entry_xb.pack(fill="x", padx=10, pady=2)
-
-        ctk.CTkLabel(self.param_frame, text="Limites Y [Inf, Sup]:", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=(10, 2))
-        self.entry_ya = ctk.CTkEntry(self.param_frame, placeholder_text="0", font=ctk.CTkFont(size=13))
-        self.entry_ya.pack(fill="x", padx=10, pady=2)
-        self.entry_yb = ctk.CTkEntry(self.param_frame, placeholder_text="1", font=ctk.CTkFont(size=13))
-        self.entry_yb.pack(fill="x", padx=10, pady=2)
-
-        ctk.CTkLabel(self.param_frame, text="Limites Z [Inf, Sup]:", font=ctk.CTkFont(size=13)).pack(anchor="w", padx=10, pady=(10, 2))
-        self.entry_za = ctk.CTkEntry(self.param_frame, placeholder_text="0", font=ctk.CTkFont(size=13))
-        self.entry_za.pack(fill="x", padx=10, pady=2)
-        self.entry_zb = ctk.CTkEntry(self.param_frame, placeholder_text="1", font=ctk.CTkFont(size=13))
-        self.entry_zb.pack(fill="x", padx=10, pady=2)
+        ctk.CTkLabel(self.param_frame, text="Límites X [Inf, Sup] | Y [Inf, Sup] | Z [Inf, Sup]:", font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=2)
+        self.entry_xa = ctk.CTkEntry(self.param_frame, placeholder_text="X inf (0)", height=24)
+        self.entry_xa.pack(fill="x", padx=10, pady=1)
+        self.entry_xb = ctk.CTkEntry(self.param_frame, placeholder_text="X sup (1)", height=24)
+        self.entry_xb.pack(fill="x", padx=10, pady=1)
+        self.entry_ya = ctk.CTkEntry(self.param_frame, placeholder_text="Y inf (0)", height=24)
+        self.entry_ya.pack(fill="x", padx=10, pady=1)
+        self.entry_yb = ctk.CTkEntry(self.param_frame, placeholder_text="Y sup (1)", height=24)
+        self.entry_yb.pack(fill="x", padx=10, pady=1)
+        self.entry_za = ctk.CTkEntry(self.param_frame, placeholder_text="Z inf (0)", height=24)
+        self.entry_za.pack(fill="x", padx=10, pady=1)
+        self.entry_zb = ctk.CTkEntry(self.param_frame, placeholder_text="Z sup (1)", height=24)
+        self.entry_zb.pack(fill="x", padx=10, pady=6)
 
     def _build_results_panel(self):
-        self.res_frame = ctk.CTkFrame(self)
-        self.res_frame.grid(row=1, column=1, sticky="nsew", padx=10, pady=10)
+        """Panel derecho totalmente llamativo para que el usuario vea el resultado al instante."""
+        self.res_frame = ctk.CTkFrame(self, fg_color=("gray85", "gray15"))
+        self.res_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+        self.res_frame.grid_rowconfigure(1, weight=2)
+        self.res_frame.grid_rowconfigure(3, weight=3)
+        self.res_frame.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(
+        # Encabezado muy visible
+        lbl_header = ctk.CTkLabel(
             self.res_frame,
-            text="Procedimiento y Resultado Detallado:",
-            font=ctk.CTkFont(size=15, weight="bold"),
-        ).pack(anchor="w", padx=15, pady=5)
-
-        self.txt_output = ctk.CTkTextbox(
-            self.res_frame, height=180, font=ctk.CTkFont(size=13)
+            text="🎯 RESULTADO Y PROCEDIMIENTO",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color="#1f538d"
         )
-        self.txt_output.pack(fill="x", padx=15, pady=5)
+        lbl_header.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 5))
 
-        self.plot_container = ctk.CTkFrame(self.res_frame)
-        self.plot_container.pack(fill="both", expand=True, padx=15, pady=5)
+        # Caja de texto grande con letra clara
+        self.txt_output = ctk.CTkTextbox(
+            self.res_frame, font=ctk.CTkFont(size=14, weight="bold")
+        )
+        self.txt_output.grid(row=1, column=0, sticky="nsew", padx=15, pady=5)
+        self.txt_output.insert("1.0", ">> El resultado aparecerá aquí inmediatamente al presionar 'CALCULAR AHORA'.")
+
+        # Contenedor de Gráfica
+        lbl_plot = ctk.CTkLabel(
+            self.res_frame,
+            text="📈 VISUALIZACIÓN GRÁFICA",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        lbl_plot.grid(row=2, column=0, sticky="w", padx=15, pady=(10, 2))
+
+        self.plot_container = ctk.CTkFrame(self.res_frame, fg_color=("white", "gray20"))
+        self.plot_container.grid(row=3, column=0, sticky="nsew", padx=15, pady=(5, 15))
 
     def _display_error(self, message: str):
-        self.txt_output.configure(text_color="#FF5555")
+        self.txt_output.configure(text_color="#FF3333")
         self.txt_output.delete("1.0", "end")
-        self.txt_output.insert("1.0", f"[ATENCION / ERROR EN EL CALCULO]:\n{message}")
+        self.txt_output.insert("1.0", f"❌ ERROR DE CÁLCULO O SINTAXIS:\n\n{message}")
 
     def _display_success(self, text: str):
         self.txt_output.configure(text_color="#2b8a3e" if ctk.get_appearance_mode()=="Light" else "#51cf66")
         self.txt_output.delete("1.0", "end")
-        self.txt_output.insert("1.0", text)
+        self.txt_output.insert("1.0", f"✅ ¡CÁLCULO EXITOSO!\n\n{text}")
 
     def _execute_calculation(self):
         expr = self.entry_expr.get()
@@ -297,7 +294,7 @@ class MainWindow(ctk.CTk):
                     (self.entry_za.get(), self.entry_zb.get()),
                 )
             else:
-                raise ValueError("Operacion no valida.")
+                raise ValueError("Operación no reconocida.")
 
             self._display_success(steps)
             self._render_plot(expr)
@@ -305,25 +302,24 @@ class MainWindow(ctk.CTk):
         except (ValueError, ArithmeticError) as e:
             self._display_error(str(e))
         except Exception as e:
-            self._display_error(f"Error inesperado de ejecucion: {str(e)}")
+            self._display_error(f"Error inesperado: {str(e)}")
 
     def _render_plot(self, expr_str: str):
         for widget in self.plot_container.winfo_children():
             widget.destroy()
 
-        # Failsafe para la variable Z o Integrales Multiples
         if "z" in expr_str.lower() or "doble" in self.op_var.get().lower() or "triple" in self.op_var.get().lower():
             lbl = ctk.CTkLabel(
                 self.plot_container,
-                text="[Grafica 2D omitida: Funcion multivariable con Z o integral multiple detectada]\nResultado analitico exacto mostrado arriba.",
-                text_color="#FFA500",
-                font=ctk.CTkFont(size=13, weight="bold"),
+                text="ℹ️ Gráfica 2D omitida por contener Z o Integral Múltiple.\nEl resultado analítico exacto está arriba.",
+                text_color="#D97706",
+                font=ctk.CTkFont(size=12, weight="bold"),
             )
-            lbl.pack(expand=True)
+            lbl.pack(expand=True, padx=10, pady=10)
             return
 
         try:
-            fig, ax = plt.subplots(figsize=(5, 3.5), dpi=100)
+            fig, ax = plt.subplots(figsize=(4, 2.8), dpi=100)
             x_vals = np.linspace(-10, 10, 200)
             sym_expr = self.engine.parse_expression(expr_str)
 
@@ -333,8 +329,8 @@ class MainWindow(ctk.CTk):
             f_num = lambda val: float(sym_expr.subs(self.engine.x, val).evalf())
             y_vals = [f_num(v) for v in x_vals]
 
-            ax.plot(x_vals, y_vals, color="#1f77b4", linewidth=2)
-            ax.set_title("Visualizacion Grafica Transversal f(x)", fontsize=11)
+            ax.plot(x_vals, y_vals, color="#1f77b4", linewidth=2.5)
+            ax.set_title("Gráfica Transversal f(x)", fontsize=10, fontweight="bold")
             ax.grid(True, linestyle="--", alpha=0.6)
             fig.tight_layout()
 
@@ -345,8 +341,8 @@ class MainWindow(ctk.CTk):
         except Exception:
             lbl = ctk.CTkLabel(
                 self.plot_container,
-                text="[No se pudo renderizar la grafica para esta expresion]",
-                text_color="#FFA500",
-                font=ctk.CTkFont(size=13),
+                text="⚠️ No se pudo renderizar la gráfica para esta función.",
+                text_color="#D97706",
+                font=ctk.CTkFont(size=12),
             )
             lbl.pack(expand=True)
