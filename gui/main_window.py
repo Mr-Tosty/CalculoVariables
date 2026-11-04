@@ -57,11 +57,11 @@ class MainWindow(ctk.CTk):
         self.entry_expr = ctk.CTkEntry(form)
         self.entry_expr.pack(fill="x", padx=15, pady=2)
 
-	lbl_hint = ctk.CTkLabel(
+        lbl_hint = ctk.CTkLabel(
             form,
             text="👉 Reglas: Usa '*' para multiplicar (3*x) "
             "y '**' para potencia (x**2)",
-            font=ctk.CTkFont(size=11, slate="italic"),
+            font=ctk.CTkFont(size=11, slant="italic"),
             text_color="#AAAAAA",
         )
         lbl_hint.pack(anchor="w", padx=20, pady=(0, 10))

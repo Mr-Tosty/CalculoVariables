@@ -1,11 +1,22 @@
-# Ignorar compilaciones de Python
+# Bloquea por completo la carpeta temporal de construccion
+build/
+
+# Bloquea la carpeta de distribucion (evita subir las librerías binarias)
+dist/
+
+# Bloquea el archivo de especificaciones generado por la compilacion
+*.spec
+
+# Bloquea de forma recursiva todas las carpetas bytecode de ejecucion
 **/__pycache__/
 *.pyc
+*.pyo
+*.pyd
 
-# Ignorar configuraciones de entornos virtuales si usas uno
-venv/
 .venv/
-
-# Ignorar configuraciones de editores
+venv/
+ENV/
 .idea/
 .vscode/
+*.suo
+*.ntvs*
