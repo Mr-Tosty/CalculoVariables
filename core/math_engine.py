@@ -1,17 +1,9 @@
-"""Modulo de Matematica Pura.
+"""Motor de Matematica Pura (SymPy).
 
-Procesa expresiones multivariables usando SymPy sin acoplamiento a la GUI.
+Soporta derivadas parciales, limites, integrales simples, dobles y triples.
 """
 
-from sympy import (
-    Symbol,
-    sympify,
-    limit,
-    diff,
-    integrate,
-    latex,
-    N,
-)
+from sympy import Symbol, sympify, limit, diff, integrate, oo
 from sympy.core.sympify import SympifyError
 
 
@@ -23,152 +15,123 @@ class MathEngine:
         self.z = Symbol("z")
 
     def parse_expression(self, expr_str: str):
-        """Convierte una cadena a SymPy y genera errores estilo Java."""
+        """Convierte texto a expresion SymPy con sintaxis flexible."""
         if not expr_str or not expr_str.strip():
-            raise ValueError(
-                "NullPointerException: La expresion no puede ser nula o vacia."
-            )
-            
-        clean_str = expr_str.replace("^", "**").strip()
-        
-        # Detecta patrones comunes de error antes de pasarlo a SymPy
-        import re
-        
-        # Caso A: Multiplicacion implicita detectada (ej. 3x, xy sin *)
-        if re.search(r"\d[a-zA-Z]", clean_str) or re.search(
-            r"[x-zX-Z][x-zX-Z]", clean_str
-        ):
-            raise ValueError(
-                "ExpressionSyntaxException: Se esperaba un operador '*' entre "
-                "coeficientes y variables.\n"
-                "  -> Regla Rota: Multiplicacion Implicita (ej: '3x')\n"
-                "  -> Solucion sugerida: Reemplaza por '3*x' o 'x*y'."
-            )
-            
-        # Caso B: Parentesis mal balanceados
-        if clean_str.count("(") != clean_str.count(")"):
-            raise ValueError(
-                "ParenthesisMismatchException: Parentesis no balanceados.\n"
-                "  -> Regla Rota: Todo '(' abierto debe cerrarse ']'\n"
-                "  -> Solucion sugerida: Verifica la agrupacion de tus "
-                "funciones."
-            )
-
+            raise ValueError("La expresion matematica no puede estar vacia.")
         try:
-            expr = sympify(clean_str)
-            return expr
+            clean_str = (
+                expr_str.replace("^", "**")
+                .replace("sen", "sin")
+                .replace("tg", "tan")
+            )
+            return sympify(clean_str)
         except SympifyError:
             raise ValueError(
-                "ParseException: Error al compilar los tokens de la "
-                "expresion.\n"
-                "  -> Regla Rota: Estructura algebraica desconocida.\n"
-                "  -> Ejemplo Valido: 'x**2 + y*cos(x)'"
+                "Sintaxis invalida. Use operadores correctos (*, +, -, ^, sin, cos, ln)."
             )
         except Exception as e:
-            raise ValueError(
-                f"MathEngineRuntimeException: {str(e)}"
-            )
+            raise ValueError(f"Error al procesar expresion: {str(e)}")
+
+    def evaluate_derivative(self, expr_str: str, var_str: str, order_str: str):
+        """Calcula derivada parcial con orden especifico."""
+        expr = self.parse_expression(expr_str)
+        var_symbol = Symbol(var_str.lower().strip())
+        try:
+            order = int(order_str)
+            if order < 1:
+                raise ValueError
+        except ValueError:
+            raise ValueError("El orden de derivada debe ser un entero >= 1.")
+
+        result = diff(expr, var_symbol, order)
+        steps = (
+            f"--- DERIVADA PARCIAL ---\n"
+            f"1. Funcion f = {expr}\n"
+            f"2. Variable de derivacion: {var_symbol} (Orden: {order})\n"
+            f"3. Resultado exacto: {result}"
+        )
+        return str(result), steps
 
     def evaluate_limit(self, expr_str: str, var_str: str, point_str: str):
-        """Calcula el limite de una funcion cuando una variable tiende a un punto."""
+        """Evalua limite de la funcion en un punto."""
         expr = self.parse_expression(expr_str)
         var_symbol = Symbol(var_str.lower().strip())
         point_val = self.parse_expression(point_str)
 
-        try:
-            result = limit(expr, var_symbol, point_val)
-            steps = (
-                f"PASO 1: Expresion original f({var_symbol}) = {expr}\n"
-                f"PASO 2: Evaluando el limite cuando {var_symbol} -> "
-                f"{point_val}\n"
-                f"RESULTADO: {result}"
-            )
-            return str(result), steps
-        except Exception as e:
-            raise ArithmeticError(
-                f"Indeterminacion o error al evaluar limite: {str(e)}"
-            )
-
-    def evaluate_derivative(self, expr_str: str, var_str: str, order_str: str):
-        """Calcula derivadas parciales simples, de orden superior o mixtas."""
-        expr = self.parse_expression(expr_str)
-        var_clean = var_str.lower().strip()
-        
-        # Validamos si se trata de una derivada mixta secuencial (ej. xy, yx)
-        is_mixed = len(var_clean) > 1 and not var_clean.isdigit()
-
-        try:
-            current_expr = expr
-            steps_list = [f"PASO 1: Expresion inicial f = {expr}"]
-            
-            if is_mixed:
-                # Procesamiento paso a paso de derivadas parciales mixtas
-                for idx, char in enumerate(var_clean, start=2):
-                    var_symbol = Symbol(char)
-                    current_expr = diff(current_expr, var_symbol, 1)
-                    steps_list.append(
-                        f"PASO {idx}: Derivando respecto a '{char}' -> "
-                        f"{current_expr}"
-                    )
-                result = current_expr
-                steps_list.append(f"RESULTADO MIXTO: {result}")
-                steps = "\n".join(steps_list)
-                return str(result), steps
-            else:
-                # Procesamiento clasico de orden numerico directo (ej. x con orden 2)
-                var_symbol = Symbol(var_clean)
-                order = int(order_str)
-                if order < 1:
-                    raise ValueError("El orden de derivada debe ser >= 1.")
-                
-                result = diff(expr, var_symbol, order)
-                steps = (
-                    f"PASO 1: Expresion f = {expr}\n"
-                    f"PASO 2: Derivando parcialmente respecto a {var_symbol} "
-                    f"(Orden {order})\n"
-                    f"RESULTADO: d^{order}f/d{var_symbol}^{order} = {result}"
-                )
-                return str(result), steps
-                
-        except ValueError:
-            raise ValueError(
-                "Para derivadas simples, el orden debe ser entero. "
-                "Para mixtas, escribe la secuencia en la variable principal."
-            )
-        except Exception as e:
-            raise ArithmeticError(f"Error al derivar: {str(e)}")
+        result = limit(expr, var_symbol, point_val)
+        steps = (
+            f"--- LIMITE ---\n"
+            f"1. Funcion f = {expr}\n"
+            f"2. Evaluando cuando {var_symbol} -> {point_val}\n"
+            f"3. Resultado exacto: {result}"
+        )
+        return str(result), steps
 
     def evaluate_integral(
         self, expr_str: str, var_str: str, a_str: str = "", b_str: str = ""
     ):
-        """Calcula la integral definida o indefinida."""
+        """Calcula integral definida o indefinida (simple)."""
         expr = self.parse_expression(expr_str)
         var_symbol = Symbol(var_str.lower().strip())
+        is_defined = bool(a_str.strip() and b_str.strip())
 
-        # Validacion robusta de campos vacios o inactivos de la GUI
-        has_a = bool(a_str and a_str.strip())
-        has_b = bool(b_str and b_str.strip())
-        is_defined = has_a and has_b
+        if is_defined:
+            a_val = self.parse_expression(a_str)
+            b_val = self.parse_expression(b_str)
+            result = integrate(expr, (var_symbol, a_val, b_val))
+            steps = (
+                f"--- INTEGRAL DEFINIDA (SIMPLE) ---\n"
+                f"1. Funcion f = {expr}\n"
+                f"2. Limites: de {a_val} a {b_val} respecto a {var_symbol}\n"
+                f"3. Resultado exacto: {result}"
+            )
+        else:
+            result = integrate(expr, var_symbol)
+            steps = (
+                f"--- INTEGRAL INDEFINIDA (SIMPLE) ---\n"
+                f"1. Funcion f = {expr}\n"
+                f"2. Integrando respecto a {var_symbol}\n"
+                f"3. Resultado exacto: {result} + C"
+            )
+        return str(result), steps
 
-        try:
-            if is_defined:
-                a_val = self.parse_expression(a_str)
-                b_val = self.parse_expression(b_str)
-                result = integrate(expr, (var_symbol, a_val, b_val))
-                steps = (
-                    f"PASO 1: Integrando f({var_symbol}) = {expr}\n"
-                    f"PASO 2: Limites de integracion desde {a_val} hasta "
-                    f"{b_val}\n"
-                    f"RESULTADO DEFINIDO: {result}"
-                )
-            else:
-                result = integrate(expr, var_symbol)
-                steps = (
-                    f"PASO 1: Integrando f({var_symbol}) = {expr}\n"
-                    f"PASO 2: Calculando antiderivada respecto a "
-                    f"{var_symbol}\n"
-                    f"RESULTADO INDEFINIDO: {result} + C"
-                )
-            return str(result), steps
-        except Exception as e:
-            raise ArithmeticError(f"Error al integrar: {str(e)}")
+    def evaluate_double_integral(
+        self, expr_str: str, x_limits: tuple, y_limits: tuple
+    ):
+        """Calcula integral doble iterada."""
+        expr = self.parse_expression(expr_str)
+        xa, xb = self.parse_expression(x_limits[0]), self.parse_expression(x_limits[1])
+        ya, yb = self.parse_expression(y_limits[0]), self.parse_expression(y_limits[1])
+
+        # Integramos primero respecto a y, luego respecto a x
+        res_inner = integrate(expr, (self.y, ya, yb))
+        result = integrate(res_inner, (self.x, xa, xb))
+
+        steps = (
+            f"--- INTEGRAL DOBLE ---\n"
+            f"1. Funcion f(x,y) = {expr}\n"
+            f"2. Rango Y: [{ya}, {yb}] | Rango X: [{xa}, {xb}]\n"
+            f"3. Resultado exacto: {result}"
+        )
+        return str(result), steps
+
+    def evaluate_triple_integral(
+        self, expr_str: str, x_lim: tuple, y_lim: tuple, z_lim: tuple
+    ):
+        """Calcula integral triple iterada."""
+        expr = self.parse_expression(expr_str)
+        xa, xb = self.parse_expression(x_lim[0]), self.parse_expression(x_lim[1])
+        ya, yb = self.parse_expression(y_lim[0]), self.parse_expression(y_lim[1])
+        za, zb = self.parse_expression(z_lim[0]), self.parse_expression(z_lim[1])
+
+        res1 = integrate(expr, (self.z, za, zb))
+        res2 = integrate(res1, (self.y, ya, yb))
+        result = integrate(res2, (self.x, xa, xb))
+
+        steps = (
+            f"--- INTEGRAL TRIPLE ---\n"
+            f"1. Funcion f(x,y,z) = {expr}\n"
+            f"2. Rangos Z:[{za},{b_str if 'zb' in locals() else zb}], Y:[{ya},{yb}], X:[{xa},{xb}]\n"
+            f"3. Resultado exacto: {result}"
+        )
+        return str(result), steps
