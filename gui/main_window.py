@@ -1,6 +1,6 @@
-"""Modulo de Interfaz de Usuario con Pestañas y Apuntes Integrados.
+"""Modulo de Interfaz de Usuario estilo Web MVC.
 
-Diseno ultra visible, resultados llamativos y formulario integrado para evitar buscar notas.
+Replica la claridad de la version web con orden horizontal y alto contraste.
 """
 
 import customtkinter as ctk
@@ -10,7 +10,7 @@ import numpy as np
 
 from core.math_engine import MathEngine
 
-ctk.set_appearance_mode("System")
+ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
 
@@ -20,329 +20,315 @@ class MainWindow(ctk.CTk):
         super().__init__()
         self.engine = MathEngine()
 
-        self.title("Asistente de Calculo Multivariable - Educativo Pro")
+        self.title("Calculadora Multivariable MVC")
         self.geometry("1250 x 820")
-        self.minsize(1000, 700)
+        self.minsize(1050, 720)
 
-        self.grid_columnconfigure(0, weight=3)
-        self.grid_columnconfigure(1, weight=2)
-        self.grid_rowconfigure(0, weight=1)
+        self._build_header()
+        self._build_tabs()
 
-        self._build_main_layout()
-
-    def _build_main_layout(self):
-        # Contenedor de Pestañas Principal (Integra Calculadora y Apuntes)
-        self.tab_view = ctk.CTkTabview(self)
-        self.tab_view.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
-
-        self.tab_calc = self.tab_view.add("🧮 Calculadora")
-        self.tab_notes = self.tab_view.add("📚 Apuntes y Fórmulas")
-
-        self._build_calculator_tab(self.tab_calc)
-        self._build_notes_tab(self.tab_notes)
-
-        # Panel Derecho: Resultados Gigantes y Grafica (Siempre visible)
-        self._build_results_panel()
-
-    def _build_calculator_tab(self, parent):
-        parent.grid_columnconfigure(0, weight=1)
-        parent.grid_rowconfigure(0, weight=1)
-
-        scroll = ctk.CTkScrollableFrame(parent, fg_color="transparent")
-        scroll.pack(fill="both", expand=True, padx=5, pady=5)
-
-        # Funcion
-        ctk.CTkLabel(
-            scroll, text="1. Ingresa la Función f(x, y, z):",
-            font=ctk.CTkFont(size=15, weight="bold")
-        ).pack(anchor="w", padx=10, pady=(10, 2))
-        self.entry_expr = ctk.CTkEntry(
-            scroll, placeholder_text="Ej: x^2 + 3*x*y - sin(z)",
-            height=40, font=ctk.CTkFont(size=14)
-        )
-        self.entry_expr.pack(fill="x", padx=10, pady=2)
-
-        # Operacion
-        ctk.CTkLabel(
-            scroll, text="2. Selecciona la Operación:",
-            font=ctk.CTkFont(size=15, weight="bold")
-        ).pack(anchor="w", padx=10, pady=(15, 2))
-        self.op_var = ctk.StringVar(value="Derivar Parcialmente")
-        self.combo_op = ctk.CTkOptionMenu(
-            scroll,
-            values=[
-                "Derivar Parcialmente",
-                "Evaluar Limite",
-                "Integral Simple",
-                "Integral Doble",
-                "Integral Triple",
-            ],
-            variable=self.op_var,
-            command=self._toggle_operation_fields,
-            height=40,
-            font=ctk.CTkFont(size=13, weight="bold"),
-        )
-        self.combo_op.pack(fill="x", padx=10, pady=2)
-
-        # Marco Dinamico de Parametros
-        self.param_frame = ctk.CTkFrame(scroll, fg_color=("gray90", "gray17"))
-        self.param_frame.pack(fill="x", padx=5, pady=15)
-        self._build_derivative_fields()
-
-        # Boton de Calculo Ultra Llamativo
-        btn_calc = ctk.CTkButton(
-            scroll,
-            text="🚀 CALCULAR AHORA",
-            command=self._execute_calculation,
-            height=50,
-            font=ctk.CTkFont(size=16, weight="bold"),
-            fg_color="#1f8a4c",
-            hover_color="#145c32",
-        )
-        btn_calc.pack(fill="x", padx=10, pady=20)
-
-    def _build_notes_tab(self, parent):
-        """Pestaña con los apuntes y formulario exactos para no buscar fuera."""
-        scroll = ctk.CTkScrollableFrame(parent)
-        scroll.pack(fill="both", expand=True, padx=5, pady=5)
+    def _build_header(self):
+        header = ctk.CTkFrame(self, fg_color="#101827", corner_radius=0)
+        header.pack(fill="x", padx=0, pady=0)
 
         title = ctk.CTkLabel(
-            scroll, text="Formulario Oficial de Cálculo (Apuntes)",
-            font=ctk.CTkFont(size=18, weight="bold")
+            header,
+            text="Calculadora Multivariable MVC",
+            font=ctk.CTkFont(size=24, weight="bold"),
+            text_color="#38bdf8",
         )
-        title.pack(anchor="w", padx=10, pady=10)
+        title.pack(anchor="w", padx=20, pady=(10, 2))
 
-        notes_text = (
-            "📌 REGLAS BÁSICAS DE DERIVADAS E INTEGRALES:\n\n"
-            "1. DERIVADAS:\n"
-            "   • Constante: d/dx (k) = 0\n"
-            "   • Identidad: d/dx (x) = 1\n"
-            "   • Potencia: d/dx (x^n) = n * x^(n-1)\n"
-            "   • Exponencial: d/dx (e^u) = e^u * du/dx\n"
-            "   • Logarítmica: d/dx (ln u) = (1/u) * du/dx\n"
-            "   • Trigonométricas: d/dx(sin u) = cos u * du/dx | d/dx(cos u) = -sin u * du/dx\n\n"
-            "2. INTEGRALES:\n"
-            "   • Constante: ∫ k dx = kx + C\n"
-            "   • Potencia: ∫ x^n dx = x^(n+1) / (n+1) + C  (para n ≠ -1)\n"
-            "   • Logarítmica: ∫ (1/x) dx = ln|x| + C\n"
-            "   • Exponencial: ∫ e^x dx = e^x + C\n"
-            "   • Trigonométricas: ∫ sin u du = -cos u + C | ∫ cos u du = sin u + C\n"
-            "   • Por partes: ∫ u dv = u*v - ∫ v du\n\n"
-            "3. CONSEJOS DE SINTAXIS EN LA APP:\n"
-            "   • Usa siempre asteriscos para multiplicar: 3*x (no 3x).\n"
-            "   • Usa '^' o '**' para potencias: x^2.\n"
-            "   • Si usas la variable 'z', la gráfica 2D se omite automáticamente para darte "
-            "el resultado analítico exacto sin errores."
+        subtitle = ctk.CTkLabel(
+            header,
+            text="Cálculo de derivadas parciales, mixtas, integrales y aproximación de límites.",
+            font=ctk.CTkFont(size=13),
+            text_color="#94a3b8",
         )
+        subtitle.pack(anchor="w", padx=20, pady=(0, 10))
 
-        lbl_notes = ctk.CTkLabel(
-            scroll, text=notes_text, justify="left",
-            font=ctk.CTkFont(size=13)
+    def _build_tabs(self):
+        self.tabview = ctk.CTkTabview(self, segmented_button_fg_color="#1e293b")
+        self.tabview.pack(fill="both", expand=True, padx=15, pady=10)
+
+        # Recreacion exacta de las pestañas de la version Web
+        self.tab_graph = self.tabview.add("Función & Gráfica")
+        self.tab_der = self.tabview.add("Derivadas Parciales")
+        self.tab_int = self.tabview.add("Integrales Múltiples")
+        self.tab_notes = self.tabview.add("Instrucciones & Formulario")
+
+        self._setup_derivatives_tab(self.tab_der)
+        self._setup_integrals_tab(self.tab_int)
+        self._setup_graph_tab(self.tab_graph)
+        self._setup_notes_tab(self.tab_notes)
+
+    def _setup_derivatives_tab(self, tab):
+        title = ctk.CTkLabel(
+            tab,
+            text="Derivadas Parciales y Mixtas",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="#38bdf8",
         )
-        lbl_notes.pack(anchor="w", padx=10, pady=5)
+        title.pack(anchor="w", padx=10, pady=(10, 2))
 
-    def _toggle_operation_fields(self, choice):
-        for widget in self.param_frame.winfo_children():
-            widget.destroy()
-
-        if choice == "Derivar Parcialmente":
-            self._build_derivative_fields()
-        elif choice == "Evaluar Limite":
-            self._build_limit_fields()
-        elif choice == "Integral Simple":
-            self._build_single_integral_fields()
-        elif choice == "Integral Doble":
-            self._build_double_integral_fields()
-        elif choice == "Integral Triple":
-            self._build_triple_integral_fields()
-
-    def _build_derivative_fields(self):
-        ctk.CTkLabel(self.param_frame, text="Variable (x, y, z):", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=2)
-        self.entry_var = ctk.CTkEntry(self.param_frame, placeholder_text="x", height=32)
-        self.entry_var.pack(fill="x", padx=10, pady=2)
-
-        ctk.CTkLabel(self.param_frame, text="Orden de derivada:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=(8, 2))
-        self.entry_p1 = ctk.CTkEntry(self.param_frame, placeholder_text="1", height=32)
-        self.entry_p1.pack(fill="x", padx=10, pady=10)
-
-    def _build_limit_fields(self):
-        ctk.CTkLabel(self.param_frame, text="Variable que tiende:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=2)
-        self.entry_var = ctk.CTkEntry(self.param_frame, placeholder_text="x", height=32)
-        self.entry_var.pack(fill="x", padx=10, pady=2)
-
-        ctk.CTkLabel(self.param_frame, text="Valor al que tiende (Punto):", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=(8, 2))
-        self.entry_p1 = ctk.CTkEntry(self.param_frame, placeholder_text="0 o oo", height=32)
-        self.entry_p1.pack(fill="x", padx=10, pady=10)
-
-    def _build_single_integral_fields(self):
-        ctk.CTkLabel(self.param_frame, text="Variable de integración:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=2)
-        self.entry_var = ctk.CTkEntry(self.param_frame, placeholder_text="x", height=32)
-        self.entry_var.pack(fill="x", padx=10, pady=2)
-
-        ctk.CTkLabel(self.param_frame, text="Límite Inf (a) y Sup (b) [Opcionales]:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=(8, 2))
-        self.entry_p1 = ctk.CTkEntry(self.param_frame, placeholder_text="Ej: 0 (Inf)", height=32)
-        self.entry_p1.pack(fill="x", padx=10, pady=2)
-        self.entry_p2 = ctk.CTkEntry(self.param_frame, placeholder_text="Ej: 1 (Sup)", height=32)
-        self.entry_p2.pack(fill="x", padx=10, pady=10)
-
-    def _build_double_integral_fields(self):
-        ctk.CTkLabel(self.param_frame, text="Límites X [Inf, Sup]:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=2)
-        self.entry_xa = ctk.CTkEntry(self.param_frame, placeholder_text="0", height=28)
-        self.entry_xa.pack(fill="x", padx=10, pady=2)
-        self.entry_xb = ctk.CTkEntry(self.param_frame, placeholder_text="1", height=28)
-        self.entry_xb.pack(fill="x", padx=10, pady=2)
-
-        ctk.CTkLabel(self.param_frame, text="Límites Y [Inf, Sup]:", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", padx=10, pady=(6, 2))
-        self.entry_ya = ctk.CTkEntry(self.param_frame, placeholder_text="0", height=28)
-        self.entry_ya.pack(fill="x", padx=10, pady=2)
-        self.entry_yb = ctk.CTkEntry(self.param_frame, placeholder_text="1-x", height=28)
-        self.entry_yb.pack(fill="x", padx=10, pady=10)
-
-    def _build_triple_integral_fields(self):
-        ctk.CTkLabel(self.param_frame, text="Límites X [Inf, Sup] | Y [Inf, Sup] | Z [Inf, Sup]:", font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=2)
-        self.entry_xa = ctk.CTkEntry(self.param_frame, placeholder_text="X inf (0)", height=24)
-        self.entry_xa.pack(fill="x", padx=10, pady=1)
-        self.entry_xb = ctk.CTkEntry(self.param_frame, placeholder_text="X sup (1)", height=24)
-        self.entry_xb.pack(fill="x", padx=10, pady=1)
-        self.entry_ya = ctk.CTkEntry(self.param_frame, placeholder_text="Y inf (0)", height=24)
-        self.entry_ya.pack(fill="x", padx=10, pady=1)
-        self.entry_yb = ctk.CTkEntry(self.param_frame, placeholder_text="Y sup (1)", height=24)
-        self.entry_yb.pack(fill="x", padx=10, pady=1)
-        self.entry_za = ctk.CTkEntry(self.param_frame, placeholder_text="Z inf (0)", height=24)
-        self.entry_za.pack(fill="x", padx=10, pady=1)
-        self.entry_zb = ctk.CTkEntry(self.param_frame, placeholder_text="Z sup (1)", height=24)
-        self.entry_zb.pack(fill="x", padx=10, pady=6)
-
-    def _build_results_panel(self):
-        """Panel derecho totalmente llamativo para que el usuario vea el resultado al instante."""
-        self.res_frame = ctk.CTkFrame(self, fg_color=("gray85", "gray15"))
-        self.res_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
-        self.res_frame.grid_rowconfigure(1, weight=2)
-        self.res_frame.grid_rowconfigure(3, weight=3)
-        self.res_frame.grid_columnconfigure(0, weight=1)
-
-        # Encabezado muy visible
-        lbl_header = ctk.CTkLabel(
-            self.res_frame,
-            text="🎯 RESULTADO Y PROCEDIMIENTO",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            text_color="#1f538d"
+        sub = ctk.CTkLabel(
+            tab,
+            text="Introduce la función original $f(x, y)$ y selecciona el orden o secuencia de derivación.",
+            font=ctk.CTkFont(size=12),
         )
-        lbl_header.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 5))
+        sub.pack(anchor="w", padx=10, pady=(0, 15))
 
-        # Caja de texto grande con letra clara
-        self.txt_output = ctk.CTkTextbox(
-            self.res_frame, font=ctk.CTkFont(size=14, weight="bold")
+        # Fila horizontal de campos (como en la imagen Web)
+        form_frame = ctk.CTkFrame(tab, fg_color="#1e293b")
+        form_frame.pack(fill="x", padx=10, pady=5)
+
+        # Columnas
+        f1 = ctk.CTkFrame(form_frame, fg_color="transparent")
+        f1.pack(side="left", fill="x", expand=True, padx=5, pady=5)
+        ctk.CTkLabel(f1, text="Función de Entrada $f(x, y)$").pack(anchor="w")
+        self.entry_der_expr = ctk.CTkEntry(
+            f1, placeholder_text="3/5*x^3*y^2 + 3/2*x^3*y^2 - 9y^3"
         )
-        self.txt_output.grid(row=1, column=0, sticky="nsew", padx=15, pady=5)
-        self.txt_output.insert("1.0", ">> El resultado aparecerá aquí inmediatamente al presionar 'CALCULAR AHORA'.")
+        self.entry_der_expr.pack(fill="x", pady=2)
 
-        # Contenedor de Gráfica
-        lbl_plot = ctk.CTkLabel(
-            self.res_frame,
-            text="📈 VISUALIZACIÓN GRÁFICA",
-            font=ctk.CTkFont(size=14, weight="bold")
+        f2 = ctk.CTkFrame(form_frame, fg_color="transparent")
+        f2.pack(side="left", padx=5, pady=5)
+        ctk.CTkLabel(f2, text="Valor de $x$").pack(anchor="w")
+        self.entry_der_x = ctk.CTkEntry(f2, width=80, placeholder_text="2")
+        self.entry_der_x.pack(pady=2)
+
+        f3 = ctk.CTkFrame(form_frame, fg_color="transparent")
+        f3.pack(side="left", padx=5, pady=5)
+        ctk.CTkLabel(f3, text="Valor de $y$").pack(anchor="w")
+        self.entry_der_y = ctk.CTkEntry(f3, width=80, placeholder_text="1")
+        self.entry_der_y.pack(pady=2)
+
+        f4 = ctk.CTkFrame(form_frame, fg_color="transparent")
+        f4.pack(side="left", padx=5, pady=5)
+        ctk.CTkLabel(f4, text="Orden / Secuencia").pack(anchor="w")
+        self.combo_seq = ctk.CTkOptionMenu(
+            f4,
+            values=[
+                "∂f / ∂x",
+                "∂f / ∂y",
+                "∂²f / ∂x²",
+                "∂²f / ∂y²",
+                "∂²f / (∂x ∂y)",
+            ],
         )
-        lbl_plot.grid(row=2, column=0, sticky="w", padx=15, pady=(10, 2))
+        self.combo_seq.pack(pady=2)
 
-        self.plot_container = ctk.CTkFrame(self.res_frame, fg_color=("white", "gray20"))
-        self.plot_container.grid(row=3, column=0, sticky="nsew", padx=15, pady=(5, 15))
+        btn = ctk.CTkButton(
+            tab,
+            text="Calcular Derivada",
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            height=40,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            command=self._calc_derivative,
+        )
+        btn.pack(fill="x", padx=10, pady=10)
 
-    def _display_error(self, message: str):
-        self.txt_output.configure(text_color="#FF3333")
-        self.txt_output.delete("1.0", "end")
-        self.txt_output.insert("1.0", f"❌ ERROR DE CÁLCULO O SINTAXIS:\n\n{message}")
+        # Output de alto contraste (Estilo consola verde web)
+        self.out_der = ctk.CTkTextbox(
+            tab, font=ctk.CTkFont(family="Consolas", size=13), text_color="#4ade80"
+        )
+        self.out_der.pack(fill="both", expand=True, padx=10, pady=10)
 
-    def _display_success(self, text: str):
-        self.txt_output.configure(text_color="#2b8a3e" if ctk.get_appearance_mode()=="Light" else "#51cf66")
-        self.txt_output.delete("1.0", "end")
-        self.txt_output.insert("1.0", f"✅ ¡CÁLCULO EXITOSO!\n\n{text}")
-
-    def _execute_calculation(self):
-        expr = self.entry_expr.get()
-        op = self.op_var.get()
+    def _calc_derivative(self):
+        expr = self.entry_der_expr.get()
+        xv = self.entry_der_x.get()
+        yv = self.entry_der_y.get()
+        seq = self.combo_seq.get()
 
         try:
-            if op == "Derivar Parcialmente":
-                var = self.entry_var.get() or "x"
-                order = self.entry_p1.get() or "1"
-                res, steps = self.engine.evaluate_derivative(expr, var, order)
-
-            elif op == "Evaluar Limite":
-                var = self.entry_var.get() or "x"
-                point = self.entry_p1.get() or "0"
-                res, steps = self.engine.evaluate_limit(expr, var, point)
-
-            elif op == "Integral Simple":
-                var = self.entry_var.get() or "x"
-                a = self.entry_p1.get() if hasattr(self, "entry_p1") else ""
-                b = self.entry_p2.get() if hasattr(self, "entry_p2") else ""
-                res, steps = self.engine.evaluate_integral(expr, var, a, b)
-
-            elif op == "Integral Doble":
-                res, steps = self.engine.evaluate_double_integral(
-                    expr,
-                    (self.entry_xa.get(), self.entry_xb.get()),
-                    (self.entry_ya.get(), self.entry_yb.get()),
-                )
-
-            elif op == "Integral Triple":
-                res, steps = self.engine.evaluate_triple_integral(
-                    expr,
-                    (self.entry_xa.get(), self.entry_xb.get()),
-                    (self.entry_ya.get(), self.entry_yb.get()),
-                    (self.entry_za.get(), self.entry_zb.get()),
-                )
-            else:
-                raise ValueError("Operación no reconocida.")
-
-            self._display_success(steps)
-            self._render_plot(expr)
-
-        except (ValueError, ArithmeticError) as e:
-            self._display_error(str(e))
+            res, steps = self.engine.evaluate_derivative(expr, xv, yv, seq)
+            self.out_der.delete("1.0", "end")
+            self.out_der.insert("1.0", steps)
         except Exception as e:
-            self._display_error(f"Error inesperado: {str(e)}")
+            self.out_der.delete("1.0", "end")
+            self.out_der.insert("1.0", f"❌ ERROR DE CÁLCULO: {str(e)}")
 
-    def _render_plot(self, expr_str: str):
-        for widget in self.plot_container.winfo_children():
-            widget.destroy()
+    def _setup_integrals_tab(self, tab):
+        title = ctk.CTkLabel(
+            tab,
+            text="Integrales Múltiples (Dobles y Triples)",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="#38bdf8",
+        )
+        title.pack(anchor="w", padx=10, pady=(10, 2))
 
-        if "z" in expr_str.lower() or "doble" in self.op_var.get().lower() or "triple" in self.op_var.get().lower():
-            lbl = ctk.CTkLabel(
-                self.plot_container,
-                text="ℹ️ Gráfica 2D omitida por contener Z o Integral Múltiple.\nEl resultado analítico exacto está arriba.",
-                text_color="#D97706",
-                font=ctk.CTkFont(size=12, weight="bold"),
-            )
-            lbl.pack(expand=True, padx=10, pady=10)
-            return
+        form = ctk.CTkFrame(tab, fg_color="#1e293b")
+        form.pack(fill="x", padx=10, pady=5)
 
+        # Fila 1
+        ctk.CTkLabel(form, text="Función Integrando f(x, y, z):").pack(
+            anchor="w", padx=10, pady=2
+        )
+        self.entry_int_expr = ctk.CTkEntry(
+            form, placeholder_text="Ej: x^2 + y^2 + z^2"
+        )
+        self.entry_int_expr.pack(fill="x", padx=10, pady=2)
+
+        # Limites
+        lim_frame = ctk.CTkFrame(form, fg_color="transparent")
+        lim_frame.pack(fill="x", padx=5, pady=5)
+
+        self.entry_xa = ctk.CTkEntry(lim_frame, placeholder_text="X Inf (0)", width=100)
+        self.entry_xa.pack(side="left", padx=5)
+        self.entry_xb = ctk.CTkEntry(lim_frame, placeholder_text="X Sup (1)", width=100)
+        self.entry_xb.pack(side="left", padx=5)
+
+        self.entry_ya = ctk.CTkEntry(lim_frame, placeholder_text="Y Inf (0)", width=100)
+        self.entry_ya.pack(side="left", padx=5)
+        self.entry_yb = ctk.CTkEntry(lim_frame, placeholder_text="Y Sup (1)", width=100)
+        self.entry_yb.pack(side="left", padx=5)
+
+        self.entry_za = ctk.CTkEntry(lim_frame, placeholder_text="Z Inf (0)", width=100)
+        self.entry_za.pack(side="left", padx=5)
+        self.entry_zb = ctk.CTkEntry(lim_frame, placeholder_text="Z Sup (1)", width=100)
+        self.entry_zb.pack(side="left", padx=5)
+
+        btn_box = ctk.CTkFrame(tab, fg_color="transparent")
+        btn_box.pack(fill="x", padx=10, pady=5)
+
+        ctk.CTkButton(
+            btn_box,
+            text="Calcular Integral Doble",
+            command=self._calc_double_int,
+            fg_color="#0284c7",
+        ).pack(side="left", expand=True, fill="x", padx=5)
+        ctk.CTkButton(
+            btn_box,
+            text="Calcular Integral Triple",
+            command=self._calc_triple_int,
+            fg_color="#0d9488",
+        ).pack(side="left", expand=True, fill="x", padx=5)
+
+        self.out_int = ctk.CTkTextbox(
+            tab, font=ctk.CTkFont(family="Consolas", size=13), text_color="#4ade80"
+        )
+        self.out_int.pack(fill="both", expand=True, padx=10, pady=10)
+
+    def _calc_double_int(self):
         try:
-            fig, ax = plt.subplots(figsize=(4, 2.8), dpi=100)
-            x_vals = np.linspace(-10, 10, 200)
-            sym_expr = self.engine.parse_expression(expr_str)
+            res, steps = self.engine.evaluate_double_integral(
+                self.entry_int_expr.get(),
+                self.entry_xa.get() or "0",
+                self.entry_xb.get() or "1",
+                self.entry_ya.get() or "0",
+                self.entry_yb.get() or "1",
+            )
+            self.out_int.delete("1.0", "end")
+            self.out_int.insert("1.0", steps)
+        except Exception as e:
+            self.out_int.delete("1.0", "end")
+            self.out_int.insert("1.0", f"❌ ERROR: {str(e)}")
 
-            if self.engine.y in sym_expr.free_symbols:
-                sym_expr = sym_expr.subs(self.engine.y, 1)
+    def _calc_triple_int(self):
+        try:
+            res, steps = self.engine.evaluate_triple_integral(
+                self.entry_int_expr.get(),
+                self.entry_xa.get() or "0",
+                self.entry_xb.get() or "1",
+                self.entry_ya.get() or "0",
+                self.entry_yb.get() or "1",
+                self.entry_za.get() or "0",
+                self.entry_zb.get() or "1",
+            )
+            self.out_int.delete("1.0", "end")
+            self.out_int.insert("1.0", steps)
+        except Exception as e:
+            self.out_int.delete("1.0", "end")
+            self.out_int.insert("1.0", f"❌ ERROR: {str(e)}")
 
-            f_num = lambda val: float(sym_expr.subs(self.engine.x, val).evalf())
-            y_vals = [f_num(v) for v in x_vals]
+    def _setup_graph_tab(self, tab):
+        title = ctk.CTkLabel(
+            tab,
+            text="Aproximación de Límites y Gráfica (Apuntes de Cuaderno)",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="#38bdf8",
+        )
+        title.pack(anchor="w", padx=10, pady=5)
 
-            ax.plot(x_vals, y_vals, color="#1f77b4", linewidth=2.5)
-            ax.set_title("Gráfica Transversal f(x)", fontsize=10, fontweight="bold")
-            ax.grid(True, linestyle="--", alpha=0.6)
+        f = ctk.CTkFrame(tab, fg_color="#1e293b")
+        f.pack(fill="x", padx=10, pady=5)
+
+        self.entry_lim_expr = ctk.CTkEntry(
+            f, placeholder_text="Ej: (x^4 + y^2 + z^2)/(1 + x^2 + y^2 + z^2)"
+        )
+        self.entry_lim_expr.pack(
+            side="left", fill="x", expand=True, padx=10, pady=10
+        )
+
+        ctk.CTkButton(
+            f, text="Generar Tabla y Gráfica", command=self._calc_limit_table
+        ).pack(side="right", padx=10, pady=10)
+
+        self.out_lim = ctk.CTkTextbox(
+            tab, height=180, font=ctk.CTkFont(family="Consolas", size=13), text_color="#4ade80"
+        )
+        self.out_lim.pack(fill="x", padx=10, pady=5)
+
+        self.plot_box = ctk.CTkFrame(tab)
+        self.plot_box.pack(fill="both", expand=True, padx=10, pady=5)
+
+    def _calc_limit_table(self):
+        expr = self.entry_lim_expr.get()
+        try:
+            steps = self.engine.generate_limit_table(expr)
+            self.out_lim.delete("1.0", "end")
+            self.out_lim.insert("1.0", steps)
+            self._render_graph(expr)
+        except Exception as e:
+            self.out_lim.delete("1.0", "end")
+            self.out_lim.insert("1.0", f"❌ ERROR: {str(e)}")
+
+    def _render_graph(self, expr_str):
+        for w in self.plot_box.winfo_children():
+            w.destroy()
+        try:
+            fig, ax = plt.subplots(figsize=(5, 3), dpi=100)
+            pts = [1.0, 0.5, 0.1, 0.05, 0.01]
+            sym_e = self.engine.parse_expression(expr_str)
+
+            y_vals = []
+            for p in pts:
+                v = float(
+                    sym_e.subs(
+                        {self.engine.x: p, self.engine.y: p, self.engine.z: p}
+                    ).evalf()
+                )
+                y_vals.append(v)
+
+            ax.plot(pts, y_vals, marker="o", color="#38bdf8", linestyle="-")
+            ax.set_title("Secuencia de Aproximación a (0,0,0)")
+            ax.set_xlabel("x = y = z")
+            ax.set_ylabel("f(x,y,z)")
+            ax.grid(True, alpha=0.3)
             fig.tight_layout()
 
-            canvas = FigureCanvasTkAgg(fig, master=self.plot_container)
+            canvas = FigureCanvasTkAgg(fig, master=self.plot_box)
             canvas.draw()
             canvas.get_tk_widget().pack(fill="both", expand=True)
-
         except Exception:
-            lbl = ctk.CTkLabel(
-                self.plot_container,
-                text="⚠️ No se pudo renderizar la gráfica para esta función.",
-                text_color="#D97706",
-                font=ctk.CTkFont(size=12),
-            )
-            lbl.pack(expand=True)
+            pass
+
+    def _setup_notes_tab(self, tab):
+        txt = ctk.CTkTextbox(tab, font=ctk.CTkFont(size=13))
+        txt.pack(fill="both", expand=True, padx=10, pady=10)
+
+        content = (
+            "FORMULARIO Y GUÍA DE APUNTES INTEGRADOS\n\n"
+            "1. LÍMITES MULTIVARIABLES Y CONTINUIDAD:\n"
+            "   • Se evalúa la tendencia (x,y,z) -> (0,0,0) mediante aproximación.\n"
+            "   • Si no se rompe la continuidad y el límite existe, la función es continua.\n\n"
+            "2. DERIVADAS PARCIALES Y MIXTAS:\n"
+            "   • ∂f/∂x: Se deriva respecto a 'x' tratando 'y' como constante.\n"
+            "   • ∂f/∂y: Se deriva respecto a 'y' tratando 'x' como constante.\n"
+            "   • ∂²f/(∂x ∂y): Derivada mixta de segundo orden.\n\n"
+            "3. INTEGRALES MÚLTIPLES:\n"
+            "   • Integrales Dobles: ∬ f(x,y) dy dx\n"
+            "   • Integrales Triples: ∭ f(x,y,z) dz dy dx"
+        )
+        txt.insert("1.0", content)

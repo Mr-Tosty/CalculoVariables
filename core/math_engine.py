@@ -1,9 +1,9 @@
-"""Motor de Matematica Pura (SymPy).
+"""Motor de Matematica Pura (SymPy + Numpy).
 
-Soporta derivadas parciales, limites, integrales simples, dobles y triples.
+Procesa calculo multivariable analitico y tablas de aproximacion de limites.
 """
 
-from sympy import Symbol, sympify, limit, diff, integrate, oo
+from sympy import Symbol, sympify, limit, diff, integrate
 from sympy.core.sympify import SympifyError
 
 
@@ -27,111 +27,129 @@ class MathEngine:
             return sympify(clean_str)
         except SympifyError:
             raise ValueError(
-                "Sintaxis invalida. Use operadores correctos (*, +, -, ^, sin, cos, ln)."
+                "Sintaxis invalida. Use operadores correctos (*, +, -, ^)."
             )
         except Exception as e:
             raise ValueError(f"Error al procesar expresion: {str(e)}")
 
-    def evaluate_derivative(self, expr_str: str, var_str: str, order_str: str):
-        """Calcula derivada parcial con orden especifico."""
-        expr = self.parse_expression(expr_str)
-        var_symbol = Symbol(var_str.lower().strip())
-        try:
-            order = int(order_str)
-            if order < 1:
-                raise ValueError
-        except ValueError:
-            raise ValueError("El orden de derivada debe ser un entero >= 1.")
-
-        result = diff(expr, var_symbol, order)
-        steps = (
-            f"--- DERIVADA PARCIAL ---\n"
-            f"1. Funcion f = {expr}\n"
-            f"2. Variable de derivacion: {var_symbol} (Orden: {order})\n"
-            f"3. Resultado exacto: {result}"
-        )
-        return str(result), steps
-
-    def evaluate_limit(self, expr_str: str, var_str: str, point_str: str):
-        """Evalua limite de la funcion en un punto."""
-        expr = self.parse_expression(expr_str)
-        var_symbol = Symbol(var_str.lower().strip())
-        point_val = self.parse_expression(point_str)
-
-        result = limit(expr, var_symbol, point_val)
-        steps = (
-            f"--- LIMITE ---\n"
-            f"1. Funcion f = {expr}\n"
-            f"2. Evaluando cuando {var_symbol} -> {point_val}\n"
-            f"3. Resultado exacto: {result}"
-        )
-        return str(result), steps
-
-    def evaluate_integral(
-        self, expr_str: str, var_str: str, a_str: str = "", b_str: str = ""
+    def evaluate_derivative(
+        self, expr_str: str, x_val: str, y_val: str, sequence: str
     ):
-        """Calcula integral definida o indefinida (simple)."""
+        """Calcula derivada parcial/mixta y evalua en punto (estilo Web MVC)."""
         expr = self.parse_expression(expr_str)
-        var_symbol = Symbol(var_str.lower().strip())
-        is_defined = bool(a_str.strip() and b_str.strip())
 
-        if is_defined:
-            a_val = self.parse_expression(a_str)
-            b_val = self.parse_expression(b_str)
-            result = integrate(expr, (var_symbol, a_val, b_val))
-            steps = (
-                f"--- INTEGRAL DEFINIDA (SIMPLE) ---\n"
-                f"1. Funcion f = {expr}\n"
-                f"2. Limites: de {a_val} a {b_val} respecto a {var_symbol}\n"
-                f"3. Resultado exacto: {result}"
-            )
+        # Analisis de secuencia
+        if sequence == "∂f / ∂x":
+            der_expr = diff(expr, self.x)
+            var_name = "x"
+        elif sequence == "∂f / ∂y":
+            der_expr = diff(expr, self.y)
+            var_name = "y"
+        elif sequence == "∂²f / ∂x²":
+            der_expr = diff(expr, self.x, 2)
+            var_name = "x^2"
+        elif sequence == "∂²f / ∂y²":
+            der_expr = diff(expr, self.y, 2)
+            var_name = "y^2"
+        elif sequence == "∂²f / (∂x ∂y)":
+            der_expr = diff(diff(expr, self.x), self.y)
+            var_name = "x y"
         else:
-            result = integrate(expr, var_symbol)
-            steps = (
-                f"--- INTEGRAL INDEFINIDA (SIMPLE) ---\n"
-                f"1. Funcion f = {expr}\n"
-                f"2. Integrando respecto a {var_symbol}\n"
-                f"3. Resultado exacto: {result} + C"
-            )
-        return str(result), steps
+            der_expr = diff(expr, self.x)
+            var_name = "x"
+
+        # Evaluacion en el punto si existen valores
+        eval_text = "N/A"
+        if x_val.strip() and y_val.strip():
+            try:
+                xv = float(self.parse_expression(x_val).evalf())
+                yv = float(self.parse_expression(y_val).evalf())
+                num_res = der_expr.subs({self.x: xv, self.y: yv}).evalf()
+                eval_text = f"f_{var_name}({xv}, {yv}) = {float(num_res):.6f}"
+            except Exception:
+                eval_text = "No se pudo evaluar en el punto especificado."
+
+        steps = (
+            f"FUNCIÓN INGRESADA: f(x, y) = {expr}\n"
+            f"PUNTO DE EVALUACIÓN: (x = {x_val or 0}, y = {y_val or 0})\n"
+            f"--------------------------------------------------\n"
+            f"DERIVADA SIMBÓLICA: ∂f/∂{var_name} = {der_expr}\n"
+            f"--------------------------------------------------\n"
+            f"PASO 1: Expresion de entrada f = {expr}\n"
+            f"PASO 2: Derivando respecto a '{var_name}' -> {der_expr}\n"
+            f"EVALUACIÓN EN EL PUNTO: {eval_text}"
+        )
+        return str(der_expr), steps
+
+    def generate_limit_table(self, expr_str: str):
+        """Genera la tabla de aproximacion numerica (como en los apuntes)."""
+        expr = self.parse_expression(expr_str)
+        points = [1.0, 0.5, 0.1, 0.05, 0.01]
+        table_rows = []
+
+        for p in points:
+            try:
+                val = float(
+                    expr.subs({self.x: p, self.y: p, self.z: p}).evalf()
+                )
+                table_rows.append(f"({p}, {p}, {p})  -->  f = {val:.6f}")
+            except Exception:
+                table_rows.append(f"({p}, {p}, {p})  -->  Indeterminado")
+
+        lim_val = limit(
+            limit(limit(expr, self.z, 0), self.y, 0), self.x, 0
+        )
+
+        steps = (
+            f"Aproximación de Límites Multivariables (Apuntes):\n"
+            f"Función: f(x,y,z) = {expr}\n"
+            f"Evaluando aproximación a (0,0,0):\n"
+            + "\n".join(table_rows)
+            + f"\n\nLímite Analítico (x,y,z)->(0,0,0): {lim_val}"
+        )
+        return steps
 
     def evaluate_double_integral(
-        self, expr_str: str, x_limits: tuple, y_limits: tuple
+        self, expr_str: str, xa: str, xb: str, ya: str, yb: str
     ):
         """Calcula integral doble iterada."""
         expr = self.parse_expression(expr_str)
-        xa, xb = self.parse_expression(x_limits[0]), self.parse_expression(x_limits[1])
-        ya, yb = self.parse_expression(y_limits[0]), self.parse_expression(y_limits[1])
+        x_inf, x_sup = self.parse_expression(xa), self.parse_expression(xb)
+        y_inf, y_sup = self.parse_expression(ya), self.parse_expression(yb)
 
-        # Integramos primero respecto a y, luego respecto a x
-        res_inner = integrate(expr, (self.y, ya, yb))
-        result = integrate(res_inner, (self.x, xa, xb))
+        res_inner = integrate(expr, (self.y, y_inf, y_sup))
+        result = integrate(res_inner, (self.x, x_inf, x_sup))
 
         steps = (
-            f"--- INTEGRAL DOBLE ---\n"
-            f"1. Funcion f(x,y) = {expr}\n"
-            f"2. Rango Y: [{ya}, {yb}] | Rango X: [{xa}, {xb}]\n"
-            f"3. Resultado exacto: {result}"
+            f"FUNCIÓN INGRESADA: f(x, y) = {expr}\n"
+            f"LÍMITES INTEGRACIÓN: X:[{x_inf}, {x_sup}] | Y:[{y_inf}, {y_sup}]\n"
+            f"--------------------------------------------------\n"
+            f"RESULTADO INTEGRAL DOBLE: {result}\n"
+            f"--------------------------------------------------\n"
+            f"PASO 1: Integral interna dy respecto a Y -> {res_inner}\n"
+            f"PASO 2: Integral externa dx respecto a X -> {result}"
         )
         return str(result), steps
 
     def evaluate_triple_integral(
-        self, expr_str: str, x_lim: tuple, y_lim: tuple, z_lim: tuple
+        self, expr_str: str, xa: str, xb: str, ya: str, yb: str, za: str, zb: str
     ):
         """Calcula integral triple iterada."""
         expr = self.parse_expression(expr_str)
-        xa, xb = self.parse_expression(x_lim[0]), self.parse_expression(x_lim[1])
-        ya, yb = self.parse_expression(y_lim[0]), self.parse_expression(y_lim[1])
-        za, zb = self.parse_expression(z_lim[0]), self.parse_expression(z_lim[1])
+        x_inf, x_sup = self.parse_expression(xa), self.parse_expression(xb)
+        y_inf, y_sup = self.parse_expression(ya), self.parse_expression(yb)
+        z_inf, z_sup = self.parse_expression(za), self.parse_expression(zb)
 
-        res1 = integrate(expr, (self.z, za, zb))
-        res2 = integrate(res1, (self.y, ya, yb))
-        result = integrate(res2, (self.x, xa, xb))
+        r1 = integrate(expr, (self.z, z_inf, z_sup))
+        r2 = integrate(r1, (self.y, y_inf, y_sup))
+        result = integrate(r2, (self.x, x_inf, x_sup))
 
         steps = (
-            f"--- INTEGRAL TRIPLE ---\n"
-            f"1. Funcion f(x,y,z) = {expr}\n"
-            f"2. Rangos Z:[{za},{b_str if 'zb' in locals() else zb}], Y:[{ya},{yb}], X:[{xa},{xb}]\n"
-            f"3. Resultado exacto: {result}"
+            f"FUNCIÓN INGRESADA: f(x, y, z) = {expr}\n"
+            f"RESULTADO INTEGRAL TRIPLE: {result}\n"
+            f"--------------------------------------------------\n"
+            f"PASO 1: Integral dz -> {r1}\n"
+            f"PASO 2: Integral dy -> {r2}\n"
+            f"PASO 3: Integral dx -> {result}"
         )
         return str(result), steps
