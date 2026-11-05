@@ -1,6 +1,6 @@
-"""Lanzador principal de la aplicacion Asistente de Calculo Multivariable.
+"""Lanzador principal de la aplicación Asistente de Cálculo Multivariable.
 
-Punto de entrada de la arquitectura modular.
+Punto de entrada único que inicializa la ventana principal y el motor POO.
 """
 
 from gui.main_window import MainWindow
